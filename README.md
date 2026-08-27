@@ -52,7 +52,7 @@ The full catalog, including individual prerequisites and validation conditions, 
 
 ### Prerequisites
 
-Install a current Node.js LTS release and enable the package manager shipped with Node.js. The first app uses a MySQL-compatible database and a server-side LLM service provided by the host environment. Do not commit environment files or API keys.
+Install a current Node.js LTS release and enable the package manager shipped with Node.js. The first app uses a MySQL-compatible database and a server-side LLM service provided by the host environment. Do not commit environment files or API keys. Sign-in is optional: when hosted OAuth is unavailable, the assistant uses a device-local guest identity to persist that browser’s sessions and tasks without blocking the workspace.
 
 ### Windows
 
@@ -90,6 +90,8 @@ Run the following commands before opening a pull request. A status cannot move t
 | `pnpm test`         | Runs unit and workflow tests.                        |
 | `pnpm build`        | Builds the production application.                   |
 | `pnpm verify`       | Runs the complete release-readiness sequence.        |
+
+For the latest live assistant-control verification record, see [`docs/ASSISTANT_VALIDATION.md`](docs/ASSISTANT_VALIDATION.md).
 
 ## Contributing and security
 

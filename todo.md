@@ -19,3 +19,11 @@
 - [x] Verify formatter, type checker, test suite, production build, and visual interface before marking validation complete.
 - [x] Create a GitHub-ready public repository configuration, then publish it after local verification succeeds.
 - [x] Link all public-hub GitHub calls to the published repository rather than the general GitHub homepage.
+- [x] Publish a complete control-audit map that records every visible assistant control, its route, exact tRPC procedure, guest/authenticated access mode, and expected success or error outcome.
+- [ ] Reproduce each assistant control flow in an authenticated browser session, including creating sessions, sending messages, creating task breakdowns, updating task status, and sign-out.
+- [x] Replace the externally failing hosted OAuth dependency with a fully working device-bound workspace equivalent so core assistant tools remain usable without a failed redirect.
+- [x] Add a privacy-preserving, device-local guest workspace identity so all assistant controls remain usable when hosted OAuth is unavailable.
+- [x] Extend assistant tests to cover every mutation’s success and visible error state, including model failure, invalid session, task ownership failure, and guest/auth behavior.
+- [x] Correct the MySQL update-result handling so a task owned by the current workspace can be marked complete while unowned tasks still fail safely.
+- [ ] Revalidate every exposed assistant control in an authenticated account when the external hosted OAuth redirect becomes available; guest-mode validation and the full quality gate have passed.
+- [x] Document the live assistant tool audit, including verified guest workflows and the hosted OAuth fallback limitation.

@@ -6,6 +6,7 @@ import {
   createAssistantSession,
   createUserTask,
   finalizeAssistantMessage,
+  getOrCreateGuestUserId,
   getAssistantSessionForUser,
   listAssistantMessagesForUser,
   listAssistantSessionsForUser,
@@ -13,7 +14,7 @@ import {
   updateUserTaskStatus,
 } from "../db";
 import { invokeLLM } from "../_core/llm";
-import { protectedProcedure, router } from "../_core/trpc";
+import { publicProcedure, router } from "../_core/trpc";
 
 const assistantSystemPrompt = `You are the Personal AI Assistant for Open Innovation Lab. Be practical, transparent, and concise. Use clear Markdown. Do not claim to have completed external actions you have not performed. When the user has an actionable goal, include a short, sequenced task breakdown. End each response with the exact Markdown heading \"## Suggested follow-ups\" followed by two or three concise bullet questions tailored to the conversation.`;
 
@@ -55,17 +56,43 @@ const taskPlanSchema = z.object({
     .max(5),
 });
 
-export const assistantRouter = router({
-  sessions: protectedProcedure.query(({ ctx }) =>
-    listAssistantSessionsForUser(ctx.user.id)
-  ),
+const workspaceIdentitySchema = z.object({
+  guestId: z
+    .string()
+    .regex(/^[a-z0-9]{20,64}$/i, "Invalid guest workspace identity")
+    .optional(),
+});
 
-  messages: protectedProcedure
-    .input(z.object({ sessionId: z.string().min(1).max(64) }))
+async function resolveWorkspaceUserId(
+  user: { id: number } | null,
+  guestId?: string
+): Promise<number> {
+  if (user) return user.id;
+  if (guestId) return getOrCreateGuestUserId(guestId);
+  throw new TRPCError({
+    code: "UNAUTHORIZED",
+    message: "Open the assistant from this device to start a guest workspace.",
+  });
+}
+
+export const assistantRouter = router({
+  sessions: publicProcedure
+    .input(workspaceIdentitySchema)
+    .query(({ ctx, input }) =>
+      resolveWorkspaceUserId(ctx.user, input.guestId).then(
+        listAssistantSessionsForUser
+      )
+    ),
+
+  messages: publicProcedure
+    .input(
+      workspaceIdentitySchema.extend({ sessionId: z.string().min(1).max(64) })
+    )
     .query(async ({ ctx, input }) => {
+      const userId = await resolveWorkspaceUserId(ctx.user, input.guestId);
       const messages = await listAssistantMessagesForUser(
         input.sessionId,
-        ctx.user.id
+        userId
       );
       if (!messages)
         throw new TRPCError({
@@ -75,19 +102,21 @@ export const assistantRouter = router({
       return messages;
     }),
 
-  tasks: protectedProcedure.query(({ ctx }) =>
-    listUserTasksForUser(ctx.user.id)
-  ),
+  tasks: publicProcedure
+    .input(workspaceIdentitySchema)
+    .query(({ ctx, input }) =>
+      resolveWorkspaceUserId(ctx.user, input.guestId).then(listUserTasksForUser)
+    ),
 
-  sendMessage: protectedProcedure
+  sendMessage: publicProcedure
     .input(
-      z.object({
+      workspaceIdentitySchema.extend({
         sessionId: z.string().min(1).max(64).optional(),
         content: z.string().trim().min(1).max(8000),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      const userId = ctx.user.id;
+      const userId = await resolveWorkspaceUserId(ctx.user, input.guestId);
       let session = input.sessionId
         ? await getAssistantSessionForUser(input.sessionId, userId)
         : undefined;
@@ -173,12 +202,15 @@ export const assistantRouter = router({
       }
     }),
 
-  breakDownSession: protectedProcedure
-    .input(z.object({ sessionId: z.string().min(1).max(64) }))
+  breakDownSession: publicProcedure
+    .input(
+      workspaceIdentitySchema.extend({ sessionId: z.string().min(1).max(64) })
+    )
     .mutation(async ({ ctx, input }) => {
+      const userId = await resolveWorkspaceUserId(ctx.user, input.guestId);
       const history = await listAssistantMessagesForUser(
         input.sessionId,
-        ctx.user.id
+        userId
       );
       if (!history)
         throw new TRPCError({
@@ -222,7 +254,7 @@ export const assistantRouter = router({
         parsed.tasks.map(task =>
           createUserTask({
             id: nanoid(),
-            userId: ctx.user.id,
+            userId,
             sessionId: input.sessionId,
             title: task.title,
             description: task.description,
@@ -233,9 +265,9 @@ export const assistantRouter = router({
       return { created: parsed.tasks.length };
     }),
 
-  createTask: protectedProcedure
+  createTask: publicProcedure
     .input(
-      z.object({
+      workspaceIdentitySchema.extend({
         title: z.string().trim().min(1).max(240),
         description: z.string().trim().max(1000).optional(),
         priority: z.enum(["low", "medium", "high"]).default("medium"),
@@ -243,28 +275,40 @@ export const assistantRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      const userId = await resolveWorkspaceUserId(ctx.user, input.guestId);
       if (
         input.sessionId &&
-        !(await getAssistantSessionForUser(input.sessionId, ctx.user.id))
+        !(await getAssistantSessionForUser(input.sessionId, userId))
       ) {
         throw new TRPCError({
           code: "NOT_FOUND",
           message: "Session not found",
         });
       }
-      await createUserTask({ id: nanoid(), userId: ctx.user.id, ...input });
+      await createUserTask({ id: nanoid(), userId, ...input });
       return { success: true } as const;
     }),
 
-  updateTaskStatus: protectedProcedure
+  updateTaskStatus: publicProcedure
     .input(
-      z.object({
+      workspaceIdentitySchema.extend({
         id: z.string().min(1).max(64),
         status: z.enum(["todo", "in_progress", "completed"]),
       })
     )
     .mutation(async ({ ctx, input }) => {
-      await updateUserTaskStatus(input.id, ctx.user.id, input.status);
+      const userId = await resolveWorkspaceUserId(ctx.user, input.guestId);
+      const affectedRows = await updateUserTaskStatus(
+        input.id,
+        userId,
+        input.status
+      );
+      if (!affectedRows) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Task not found in this workspace",
+        });
+      }
       return { success: true } as const;
     }),
 });

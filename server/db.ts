@@ -1,4 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
+import { createHash } from "node:crypto";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   assistantMessages,
@@ -103,6 +104,30 @@ export async function getUserByOpenId(openId: string) {
     .limit(1);
 
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getOrCreateGuestUserId(guestId: string): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database is not available");
+
+  const identityDigest = createHash("sha256")
+    .update(guestId)
+    .digest("hex")
+    .slice(0, 48);
+  const openId = `guest:${identityDigest}`;
+  await db
+    .insert(users)
+    .values({
+      openId,
+      name: "Guest workspace",
+      loginMethod: "device_guest",
+      lastSignedIn: new Date(),
+    })
+    .onDuplicateKeyUpdate({ set: { lastSignedIn: new Date() } });
+
+  const guest = await getUserByOpenId(openId);
+  if (!guest) throw new Error("Could not create the guest workspace");
+  return guest.id;
 }
 
 type StoredProject = {
@@ -293,8 +318,16 @@ export async function updateUserTaskStatus(
 ) {
   const db = await getDb();
   if (!db) throw new Error("Database is not available");
-  await db
+  const result = await db
     .update(userTasks)
     .set({ status })
     .where(and(eq(userTasks.id, id), eq(userTasks.userId, userId)));
+  return affectedRowsFromMySqlUpdate(result);
+}
+
+export function affectedRowsFromMySqlUpdate(result: unknown): number {
+  const header = Array.isArray(result) ? result[0] : result;
+  const affectedRows = (header as { affectedRows?: unknown } | undefined)
+    ?.affectedRows;
+  return typeof affectedRows === "number" ? affectedRows : 0;
 }

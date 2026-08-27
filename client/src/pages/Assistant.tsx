@@ -4,12 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import {
-  ArrowLeft,
   Check,
-  ChevronRight,
   ClipboardList,
   Loader2,
   MessageSquarePlus,
@@ -26,6 +23,18 @@ const starterPrompts = [
   "Break down my most important goal into the next three actions.",
   "Review this plan for risks, dependencies, and a better starting point.",
 ];
+
+function getGuestWorkspaceId(): string {
+  const storageKey = "open-innovation-lab-guest-workspace";
+  const existing = window.localStorage.getItem(storageKey);
+  if (existing && /^[a-z0-9]{20,64}$/i.test(existing)) return existing;
+
+  const generated = window.crypto?.randomUUID
+    ? window.crypto.randomUUID().replaceAll("-", "")
+    : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}`;
+  window.localStorage.setItem(storageKey, generated);
+  return generated;
+}
 
 function suggestedFollowUps(content: string): string[] {
   const marker = "## Suggested follow-ups";
@@ -44,24 +53,29 @@ function visibleMessageContent(content: string): string {
 }
 
 export default function Assistant() {
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user, loading, isAuthenticated, logout } = useAuth();
   const utils = trpc.useUtils();
+  const [guestId] = useState(getGuestWorkspaceId);
   const [selectedSessionId, setSelectedSessionId] = useState<
     string | undefined
   >();
   const [newTaskOpen, setNewTaskOpen] = useState(false);
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDescription, setTaskDescription] = useState("");
+  const workspaceIdentity = useMemo(
+    () => (isAuthenticated ? {} : { guestId }),
+    [guestId, isAuthenticated]
+  );
 
-  const sessionsQuery = trpc.assistant.sessions.useQuery(undefined, {
-    enabled: isAuthenticated,
+  const sessionsQuery = trpc.assistant.sessions.useQuery(workspaceIdentity, {
+    enabled: !loading,
   });
   const messagesQuery = trpc.assistant.messages.useQuery(
-    { sessionId: selectedSessionId ?? "" },
-    { enabled: isAuthenticated && Boolean(selectedSessionId) }
+    { ...workspaceIdentity, sessionId: selectedSessionId ?? "" },
+    { enabled: !loading && Boolean(selectedSessionId) }
   );
-  const tasksQuery = trpc.assistant.tasks.useQuery(undefined, {
-    enabled: isAuthenticated,
+  const tasksQuery = trpc.assistant.tasks.useQuery(workspaceIdentity, {
+    enabled: !loading,
   });
 
   const selectedSession = useMemo(
@@ -69,22 +83,15 @@ export default function Assistant() {
     [sessionsQuery.data, selectedSessionId]
   );
 
-  const refreshWorkspace = async () => {
-    await Promise.all([
-      utils.assistant.sessions.invalidate(),
-      utils.assistant.tasks.invalidate(),
-      selectedSessionId
-        ? utils.assistant.messages.invalidate({ sessionId: selectedSessionId })
-        : Promise.resolve(),
-    ]);
-  };
-
   const sendMessage = trpc.assistant.sendMessage.useMutation({
     onSuccess: async result => {
       setSelectedSessionId(result.sessionId);
       await Promise.all([
-        utils.assistant.sessions.invalidate(),
-        utils.assistant.messages.invalidate({ sessionId: result.sessionId }),
+        utils.assistant.sessions.invalidate(workspaceIdentity),
+        utils.assistant.messages.invalidate({
+          ...workspaceIdentity,
+          sessionId: result.sessionId,
+        }),
       ]);
       if (result.status === "error")
         toast.error(
@@ -96,7 +103,7 @@ export default function Assistant() {
 
   const breakDownSession = trpc.assistant.breakDownSession.useMutation({
     onSuccess: async result => {
-      await utils.assistant.tasks.invalidate();
+      await utils.assistant.tasks.invalidate(workspaceIdentity);
       toast.success(
         `${result.created} task${result.created === 1 ? "" : "s"} added to your workspace.`
       );
@@ -109,14 +116,14 @@ export default function Assistant() {
       setTaskTitle("");
       setTaskDescription("");
       setNewTaskOpen(false);
-      await utils.assistant.tasks.invalidate();
+      await utils.assistant.tasks.invalidate(workspaceIdentity);
       toast.success("Task added to your workspace.");
     },
     onError: error => toast.error(error.message),
   });
 
   const updateTask = trpc.assistant.updateTaskStatus.useMutation({
-    onSuccess: () => utils.assistant.tasks.invalidate(),
+    onSuccess: () => utils.assistant.tasks.invalidate(workspaceIdentity),
     onError: error => toast.error(error.message),
   });
 
@@ -140,57 +147,6 @@ export default function Assistant() {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <main className="min-h-screen bg-[#f4f6ef] text-[#173029] px-5 py-7 sm:px-8 lg:px-12">
-        <div className="mx-auto max-w-5xl">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-[#47685d] transition hover:text-[#173029]"
-          >
-            <ArrowLeft className="size-4" />
-            Open Innovation Lab
-          </Link>
-          <section className="mt-20 grid overflow-hidden rounded-[2rem] border border-[#d9e2d6] bg-[#173029] shadow-[0_24px_80px_rgba(23,48,41,0.18)] lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="p-8 sm:p-12 lg:p-16">
-              <Badge className="bg-[#d9ff81] text-[#173029] hover:bg-[#d9ff81]">
-                Personal AI Assistant
-              </Badge>
-              <h1 className="mt-7 max-w-xl font-serif text-5xl leading-[0.98] tracking-[-0.05em] text-[#f4f6ef] sm:text-6xl">
-                A calm workspace for turning intent into action.
-              </h1>
-              <p className="mt-7 max-w-lg text-lg leading-8 text-[#c8d6cc]">
-                Sign in to create private, persistent conversations and task
-                lists. The assistant clearly shows when a response is being
-                prepared or when a model request needs another attempt.
-              </p>
-              <Button
-                onClick={startLogin}
-                className="mt-9 h-12 rounded-full bg-[#d9ff81] px-6 text-[#173029] hover:bg-[#efffbf]"
-              >
-                Sign in to continue <ChevronRight className="ml-1 size-4" />
-              </Button>
-            </div>
-            <div className="relative min-h-72 overflow-hidden border-t border-white/10 bg-[#203d35] p-8 lg:border-l lg:border-t-0">
-              <div className="absolute -right-12 -top-16 size-64 rounded-full bg-[#d9ff81]/20 blur-3xl" />
-              <div className="relative rounded-2xl border border-white/10 bg-[#173029]/80 p-5 backdrop-blur">
-                <Sparkles className="size-5 text-[#d9ff81]" />
-                <p className="mt-4 text-sm leading-6 text-[#eff8f0]">
-                  “Help me organize a launch plan that I can start this week.”
-                </p>
-                <div className="mt-6 flex gap-2">
-                  <span className="h-2 w-2 rounded-full bg-[#d9ff81]" />
-                  <span className="h-2 w-2 rounded-full bg-[#d9ff81]/50" />
-                  <span className="h-2 w-2 rounded-full bg-[#d9ff81]/30" />
-                </div>
-              </div>
-            </div>
-          </section>
-        </div>
-      </main>
-    );
-  }
-
   return (
     <main className="min-h-screen bg-[#f4f6ef] text-[#173029]">
       <header className="sticky top-0 z-30 border-b border-[#d9e2d6]/80 bg-[#f4f6ef]/90 backdrop-blur">
@@ -205,8 +161,17 @@ export default function Assistant() {
           </Link>
           <div className="flex items-center gap-3">
             <span className="hidden text-sm text-[#587166] sm:block">
-              {user?.name ?? "Private workspace"}
+              {user?.name ?? "Guest workspace · this device"}
             </span>
+            {isAuthenticated && (
+              <Button
+                variant="outline"
+                className="rounded-full border-[#bed0c1] bg-transparent"
+                onClick={() => void logout()}
+              >
+                Sign out
+              </Button>
+            )}
             <Button
               variant="outline"
               className="rounded-full border-[#bed0c1] bg-transparent"
@@ -278,7 +243,10 @@ export default function Assistant() {
                 className="rounded-full border-[#bed0c1] bg-transparent"
                 disabled={breakDownSession.isPending}
                 onClick={() =>
-                  breakDownSession.mutate({ sessionId: selectedSessionId })
+                  breakDownSession.mutate({
+                    ...workspaceIdentity,
+                    sessionId: selectedSessionId,
+                  })
                 }
               >
                 {breakDownSession.isPending ? (
@@ -293,7 +261,11 @@ export default function Assistant() {
           <AIChatBox
             messages={messages}
             onSendMessage={content =>
-              sendMessage.mutate({ sessionId: selectedSessionId, content })
+              sendMessage.mutate({
+                ...workspaceIdentity,
+                sessionId: selectedSessionId,
+                content,
+              })
             }
             isLoading={sendMessage.isPending}
             height="calc(100vh - 12rem)"
@@ -317,6 +289,7 @@ export default function Assistant() {
                       key={prompt}
                       onClick={() =>
                         sendMessage.mutate({
+                          ...workspaceIdentity,
                           sessionId: selectedSessionId,
                           content: prompt,
                         })
@@ -359,6 +332,7 @@ export default function Assistant() {
                 event.preventDefault();
                 if (taskTitle.trim())
                   createTask.mutate({
+                    ...workspaceIdentity,
                     title: taskTitle,
                     description: taskDescription || undefined,
                     sessionId: selectedSessionId,
@@ -405,6 +379,7 @@ export default function Assistant() {
                       className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-full border ${task.status === "completed" ? "border-[#173029] bg-[#173029] text-[#d9ff81]" : "border-[#9cb4a2]"}`}
                       onClick={() =>
                         updateTask.mutate({
+                          ...workspaceIdentity,
                           id: task.id,
                           status:
                             task.status === "completed" ? "todo" : "completed",
