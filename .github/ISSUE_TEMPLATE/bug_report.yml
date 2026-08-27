@@ -1,0 +1,35 @@
+name: Bug report
+description: Report a reproducible defect in an implemented project.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "Thank you for helping improve Open Innovation Lab. Please avoid posting secrets or personal data."
+  - type: input
+    id: project
+    attributes:
+      label: Affected project
+      description: Identify the roadmap project or application area.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Include the smallest reliable sequence of actions.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, browser or device, version, and relevant configuration.
+    validations:
+      required: true

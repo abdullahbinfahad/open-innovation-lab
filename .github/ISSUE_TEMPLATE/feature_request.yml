@@ -1,0 +1,25 @@
+name: Feature request
+description: Propose a scoped improvement to an existing or planned project.
+title: "feature: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and context
+      description: Describe the user need rather than only a preferred implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed outcome
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Suggested validation
+      description: Explain how a maintainer could confirm the feature works.
+    validations:
+      required: true
