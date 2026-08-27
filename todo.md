@@ -7,7 +7,8 @@
 - [x] Integrate secure server-side LLM conversations using the built-in model service without exposing credentials.
 - [x] Add AI-assisted task breakdown and contextual follow-up prompts connected to each assistant session.
 - [x] Persist assistant conversations and user-created tasks across visits for authenticated users.
-- [x] Implement transparent public status rules that distinguish planned, in progress, validated, and released projects.
+- [x] Correct the public roadmap data source so project statuses are canonically synchronized and cannot drift from the intended roadmap state.
+- [x] Add automated roadmap-status persistence coverage for canonical database writes and verify all 30 stored project statuses match the public release contract.
 - [x] Write a hard-to-easy roadmap covering scope, prerequisites, validation criteria, and release order for every proposed project.
 - [x] Add a reusable project scaffold and contributor conventions for future projects in the monorepo.
 - [x] Add an MIT License, CONTRIBUTING guide, Code of Conduct, security policy, issue templates, pull-request template, and open-source governance files.

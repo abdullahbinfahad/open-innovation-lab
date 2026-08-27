@@ -19,6 +19,18 @@ describe("roadmap contract", () => {
     ).toBe(true);
   });
 
+  it("defines exactly one in-progress project and twenty-nine planned projects", () => {
+    const statusCounts = ROADMAP_PROJECTS.reduce<Record<string, number>>(
+      (counts, project) => {
+        counts[project.status] = (counts[project.status] ?? 0) + 1;
+        return counts;
+      },
+      {}
+    );
+
+    expect(statusCounts).toEqual({ in_progress: 1, planned: 29 });
+  });
+
   it("requires a release contract for every roadmap entry", () => {
     for (const project of ROADMAP_PROJECTS) {
       expect(project.summary.length).toBeGreaterThan(20);

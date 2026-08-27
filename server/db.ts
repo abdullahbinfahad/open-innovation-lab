@@ -10,6 +10,10 @@ import {
 } from "../drizzle/schema";
 import { ROADMAP_PROJECTS, type ProjectStatus } from "../shared/roadmap";
 import { ENV } from "./_core/env";
+import {
+  canonicalRoadmapRecordWrites,
+  canonicalRoadmapUpdateSet,
+} from "./roadmapSync";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -148,32 +152,14 @@ async function synchronizeRoadmapRecords() {
   if (!db) return;
 
   await Promise.all(
-    ROADMAP_PROJECTS.map(project =>
+    canonicalRoadmapRecordWrites().map(record =>
       db
         .insert(projectRecords)
         .values({
-          id: project.id,
-          title: project.title,
-          category: project.category,
-          difficulty: project.difficulty,
-          platforms: JSON.stringify(project.platforms),
-          releaseOrder: project.releaseOrder,
-          status: project.status,
-          summary: project.summary,
-          prerequisites: project.prerequisites,
-          validationCriteria: project.validationCriteria,
+          ...record,
         })
         .onDuplicateKeyUpdate({
-          set: {
-            title: project.title,
-            category: project.category,
-            difficulty: project.difficulty,
-            platforms: JSON.stringify(project.platforms),
-            releaseOrder: project.releaseOrder,
-            summary: project.summary,
-            prerequisites: project.prerequisites,
-            validationCriteria: project.validationCriteria,
-          },
+          set: canonicalRoadmapUpdateSet(record),
         })
     )
   );
