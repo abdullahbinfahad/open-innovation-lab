@@ -24,6 +24,10 @@ Guest persistence is intentionally scoped to the browser’s local storage. A no
 
 After the MySQL result-parser correction, the live completion control was exercised again in both directions for a newly created guest task. The task changed between completed and incomplete without a failure toast, while the server retains a `NOT_FOUND` response for a task outside the current workspace.
 
+Following removal of the global automatic OAuth redirect, the assistant was reopened in guest mode and the **Start a new conversation** control was exercised. It retained the task queue, cleared the active conversation, and left a usable fresh composer without redirecting to an external sign-in service.
+
+The post-repair audit also exercised **View roadmap** from the workspace and **Open assistant** from the public hub. Both routes completed successfully; after the public roadmap request resolved, its counter displayed the canonical one in-progress project. A starter prompt generated a real model response, a model-provided suggested-follow-up chip generated the next persisted turn, and **Make tasks** created a refreshed set of three tasks from that conversation. The manual add-task control, saved-session selection, and task-status toggle were also exercised during the same guest-workspace validation cycle.
+
 ## Control map
 
 | Visible control          | Route or client action             | Backing procedure                       | Access mode            | Expected success and error outcome                                                                                                                                                                             |
@@ -43,6 +47,8 @@ After the MySQL result-parser correction, the live completion control was exerci
 ## Authentication note
 
 The hosted OAuth redirect returned a third-party 403 response during the live audit. The assistant therefore does not depend on that redirect for its core functionality: guest mode is the first-party, device-scoped identity equivalent that enables persistent use when OAuth is unavailable. The browser stores only a random workspace identifier; the server stores a one-way hash rather than the raw identifier. If hosted OAuth succeeds, the same tools use the authenticated account and expose a Sign out control. The existing automated test suite also covers the logout mutation.
+
+The client audit found one optional `startLogin` utility retained by the framework, but no released route, button, query handler, mutation handler, or automatic error handler invokes it. The global unauthorized-to-OAuth redirect was removed. Consequently, no visible released assistant control routes a guest user to the unavailable OAuth service.
 
 ## Automated coverage
 
