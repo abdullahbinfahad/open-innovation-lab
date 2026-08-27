@@ -4,6 +4,8 @@
 
 Open Innovation Lab is both a public project hub and a practical build system. The first implementation is a **Personal AI Assistant**: a full-stack workspace for persistent conversations, task intake, AI-assisted task breakdown, and contextual follow-ups. The remaining projects are a published roadmap—not completed products. Their status remains **Planned** until implementation and their documented quality gates have passed.
 
+The public source repository is available at [github.com/abdullahbinfahad/open-innovation-lab](https://github.com/abdullahbinfahad/open-innovation-lab).
+
 ## Principles
 
 | Principle                | What it means in this repository                                                                                                           |
@@ -61,7 +63,7 @@ Use PowerShell or Windows Terminal. Install Node.js, clone the repository, and r
 Use Terminal and install Node.js through your preferred trusted package manager or the official installer. Then clone the repository and follow the same commands.
 
 ```bash
-git clone https://github.com/YOUR_ACCOUNT/open-innovation-lab.git
+git clone https://github.com/abdullahbinfahad/open-innovation-lab.git
 cd open-innovation-lab
 corepack enable
 pnpm install

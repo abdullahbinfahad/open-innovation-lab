@@ -90,7 +90,7 @@ export default function Home() {
             Principles
           </a>
           <a
-            href="https://github.com"
+            href="https://github.com/abdullahbinfahad/open-innovation-lab"
             target="_blank"
             rel="noreferrer"
             className="transition hover:text-[#173029]"
@@ -397,7 +397,7 @@ export default function Home() {
         <span>Open Innovation Lab · Built in public</span>
         <div className="flex gap-5">
           <a
-            href="https://github.com"
+            href="https://github.com/abdullahbinfahad/open-innovation-lab"
             target="_blank"
             rel="noreferrer"
             className="hover:text-[#173029]"

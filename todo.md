@@ -16,4 +16,5 @@
 - [x] Align local environment setup guidance with the secure secret-management workflow without committing an environment file.
 - [x] Write Vitest coverage for data contracts, assistant/task workflows, and roadmap status rules, then verify the suite passes.
 - [x] Verify formatter, type checker, test suite, production build, and visual interface before marking validation complete.
-- [ ] Create a GitHub-ready public repository configuration, then publish it after local verification succeeds.
+- [x] Create a GitHub-ready public repository configuration, then publish it after local verification succeeds.
+- [x] Link all public-hub GitHub calls to the published repository rather than the general GitHub homepage.
