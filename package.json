@@ -12,7 +12,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "verify": "pnpm format:check && pnpm check && pnpm test && pnpm build",
-    "db:push": "drizzle-kit generate && drizzle-kit migrate"
+    "db:push": "drizzle-kit generate && drizzle-kit migrate",
+    "verify:repeat": "pnpm verify && pnpm verify && pnpm verify"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",
