@@ -1,5 +1,9 @@
 # Open Innovation Lab
 
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
+![MIT License](https://img.shields.io/badge/License-MIT-green)
+![Open Source](https://img.shields.io/badge/Open_Source-Community-brightgreen)
+
 > An elegant open-source monorepo for 30 AI, computer-vision, IoT, and software projects—built transparently from hard to easy, with evidence-based validation.
 
 Open Innovation Lab is both a public project hub and a practical build system. The first implementation is a **Personal AI Assistant**: a full-stack workspace for persistent conversations, task intake, AI-assisted task breakdown, and contextual follow-ups. The remaining projects are a published roadmap—not completed products. Their status remains **Planned** until implementation and their documented quality gates have passed.
@@ -100,3 +104,7 @@ Contributions should follow [`CONTRIBUTING.md`](CONTRIBUTING.md), the [`CODE_OF_
 ## License
 
 This repository is available under the [MIT License](LICENSE).
+
+## 🔍 Keywords
+
+open innovation lab, AI agents, computer vision, IoT projects, open source monorepo, TypeScript monorepo, personal AI assistant, robotics projects, software projects, transparent development, evidence-based validation, build in public
